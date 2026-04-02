@@ -1,0 +1,55 @@
+[system]
+# 语言设置为中文
+language = "zh"
+api_keys = []
+encrypt_key = "your_secret_key"
+
+# 服务器配置
+[service.web]
+host = "0.0.0.0"
+port = 5670
+
+[service.web.database]
+type = "sqlite"
+path = "pilot/meta_data/dbgpt.db"
+
+# RAG 存储配置
+[rag.storage]
+[rag.storage.vector]
+type = "chroma"
+persist_path = "pilot/data"
+
+# 模型配置
+[models]
+[[models.llms]]
+name = "qwen2.5:7b"
+provider = "proxy/ollama"
+api_base = "http://localhost:11434"
+api_key = ""
+
+# 远程 Qwen3-Omni-30B 模型 (vLLM)
+[[models.llms]]
+name = "qwen3-omni-30b"
+provider = "proxy/openai"
+api_base = "http://182.114.59.224:60329/v1"
+api_key = "dummy"
+# 实际模型路径，用于 API 调用
+backend_model = "/mnt/0000215b-cd5c-4bf2-a5ea-a707e8d94251/models/Qwen/Qwen3-Omni-30B-A3B-Instruct"
+
+# Embedding 模型配置
+[[models.embeddings]]
+name = "nomic-embed-text"
+provider = "proxy/ollama"
+api_base = "http://localhost:11434"
+api_key = ""
+
+# MySQL 数据源配置（医院知识库）
+[[datasource]]
+name = "hospital_db"
+type = "mysql"
+host = "localhost"
+port = 3306
+user = "root"
+password = "ServBay.dev"
+database = "hospital_db"
+description = "口腔医院知识库，包含医院、医生、项目价格、顾客信息"

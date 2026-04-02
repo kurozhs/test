@@ -1,0 +1,50 @@
+# Python
+__pycache__/
+*.py[cod]
+*.egg-info/
+*.egg
+dist/
+build/
+*.so
+.eggs/
+
+# Virtual environments
+venv/
+.venv/
+env/
+
+# IDE
+.idea/
+.vscode/
+*.swp
+*.swo
+*~
+
+# Logs
+*.log
+logs/
+
+# Cache
+cache/
+chroma.sqlite3
+
+# Data
+data/
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Env
+.env
+.env.*
+
+# Node
+node_modules/
+web/node_modules/
+
+# Temp/UUID dirs
+38da17de-028f-42df-aa94-af566839fd32/
+719eac68-ad59-463b-bd29-57ff950eb0de/
+72bcb4a1-07fe-4142-930a-691ad37a82ee/
+Untitled/

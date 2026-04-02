@@ -1,0 +1,42 @@
+# DB-GPT GBI Configuration for Customer Service System
+# Created: 2026-01-23
+
+[system]
+language = "zh"
+api_keys = []
+encrypt_key = "dental_gbi_secret_2026"
+
+# Server Configurations
+[service.web]
+host = "0.0.0.0"
+port = 5670
+
+# Use SQLite for simplicity (default)
+[service.web.database]
+type = "sqlite"
+path = "pilot/meta_data/dbgpt.db"
+
+[service.model.worker]
+host = "127.0.0.1"
+
+# RAG Storage
+[rag.storage]
+[rag.storage.vector]
+type = "chroma"
+persist_path = "pilot/data"
+
+# Model Configurations - Using your Qwen LLM
+[models]
+[[models.llms]]
+name = "qwen3-omni-30b"
+provider = "proxy/openai"
+# Your LLM API endpoint
+api_base = "http://182.114.59.224:60329/v1"
+api_key = "dummy"
+
+# Embedding model - use local or same API
+[[models.embeddings]]
+name = "text-embedding-ada-002"
+provider = "proxy/openai"
+api_url = "http://182.114.59.224:60329/v1/embeddings"
+api_key = "dummy"

@@ -1,0 +1,1838 @@
+<!DOCTYPE html>
+<html lang="zh-CN">
+<head>
+    <meta charset="UTF-8">
+
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <meta http-equiv="Cache-Control" content="no-cache, no-store, must-revalidate">
+    <meta http-equiv="Pragma" content="no-cache">
+    <meta http-equiv="Expires" content="0">
+    <title>智能客服 v3.1</title>
+    <!-- 版本: 3.1 - 2026-01-22 - 增加医院排名查询(派单量) -->
+    <style>
+        * {
+            margin: 0;
+            padding: 0;
+            box-sizing: border-box;
+        }
+
+        body {
+            font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            min-height: 100vh;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            padding: 20px;
+        }
+
+        .chat-container {
+            width: 100%;
+            max-width: 800px;
+            height: 90vh;
+            background: #fff;
+            border-radius: 20px;
+            box-shadow: 0 20px 60px rgba(0,0,0,0.3);
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+
+        .chat-header {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            padding: 20px 25px;
+            display: flex;
+            align-items: center;
+            gap: 15px;
+        }
+
+        .chat-header .avatar {
+            width: 45px;
+            height: 45px;
+            background: rgba(255,255,255,0.2);
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 24px;
+        }
+
+        .chat-header .info h1 {
+            font-size: 18px;
+            font-weight: 600;
+        }
+
+        .chat-header .info p {
+            font-size: 12px;
+            opacity: 0.8;
+            margin-top: 2px;
+        }
+
+        .chat-messages {
+            flex: 1;
+            overflow-y: auto;
+            padding: 20px;
+            background: #f5f7fb;
+        }
+
+        .message {
+            display: flex;
+            margin-bottom: 20px;
+            animation: fadeIn 0.3s ease;
+        }
+
+        @keyframes fadeIn {
+            from { opacity: 0; transform: translateY(10px); }
+            to { opacity: 1; transform: translateY(0); }
+        }
+
+        .message.user {
+            flex-direction: row-reverse;
+        }
+
+        .message .avatar {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 18px;
+            flex-shrink: 0;
+        }
+
+        .message.bot .avatar {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+        }
+
+        .message.user .avatar {
+            background: #e8e8e8;
+            color: #666;
+        }
+
+        .message .content {
+            max-width: 70%;
+            padding: 12px 18px;
+            border-radius: 18px;
+            margin: 0 12px;
+            line-height: 1.6;
+            font-size: 14px;
+        }
+
+        .message.bot .content {
+            background: white;
+            color: #333;
+            border-bottom-left-radius: 4px;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+        }
+
+        .message.user .content {
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border-bottom-right-radius: 4px;
+        }
+
+        .message .content pre {
+            background: #f5f5f5;
+            padding: 10px;
+            border-radius: 8px;
+            overflow-x: auto;
+            font-size: 12px;
+            margin: 10px 0;
+        }
+
+        .message .content table {
+            border-collapse: collapse;
+            margin: 10px 0;
+            font-size: 13px;
+            width: 100%;
+        }
+
+        .message .content table th,
+        .message .content table td {
+            border: 1px solid #ddd;
+            padding: 8px;
+            text-align: left;
+        }
+
+        .message .content table th {
+            background: #f0f0f0;
+        }
+
+        .message .content h3, .message .content h4 {
+            margin: 15px 0 8px 0;
+            color: #333;
+        }
+
+        .message .content ul, .message .content ol {
+            margin: 8px 0;
+            padding-left: 20px;
+        }
+
+        .message .content li {
+            margin: 4px 0;
+        }
+
+        .message .content strong {
+            color: #5a67d8;
+        }
+
+        .message .time {
+            font-size: 11px;
+            color: #999;
+            margin-top: 5px;
+            text-align: right;
+        }
+
+        .typing-indicator {
+            display: flex;
+            align-items: center;
+            padding: 15px 20px;
+            color: #666;
+            font-size: 13px;
+        }
+
+        .typing-indicator .dots {
+            display: flex;
+            gap: 4px;
+            margin-left: 8px;
+        }
+
+        .typing-indicator .dot {
+            width: 8px;
+            height: 8px;
+            background: #667eea;
+            border-radius: 50%;
+            animation: bounce 1.4s infinite ease-in-out;
+        }
+
+        .typing-indicator .dot:nth-child(1) { animation-delay: 0s; }
+        .typing-indicator .dot:nth-child(2) { animation-delay: 0.2s; }
+        .typing-indicator .dot:nth-child(3) { animation-delay: 0.4s; }
+
+        @keyframes bounce {
+            0%, 80%, 100% { transform: scale(0); }
+            40% { transform: scale(1); }
+        }
+
+        .chat-input {
+            padding: 20px;
+            background: white;
+            border-top: 1px solid #eee;
+            display: flex;
+            gap: 12px;
+        }
+
+        .chat-input input {
+            flex: 1;
+            padding: 14px 20px;
+            border: 2px solid #e8e8e8;
+            border-radius: 25px;
+            font-size: 14px;
+            outline: none;
+            transition: border-color 0.3s;
+        }
+
+        .chat-input input:focus {
+            border-color: #667eea;
+        }
+
+        .chat-input button {
+            padding: 14px 28px;
+            background: linear-gradient(135deg, #667eea 0%, #764ba2 100%);
+            color: white;
+            border: none;
+            border-radius: 25px;
+            font-size: 14px;
+            font-weight: 600;
+            cursor: pointer;
+            transition: transform 0.2s, box-shadow 0.2s;
+        }
+
+        .chat-input button:hover {
+            transform: translateY(-2px);
+            box-shadow: 0 5px 20px rgba(102, 126, 234, 0.4);
+        }
+
+        .chat-input button:disabled {
+            opacity: 0.6;
+            cursor: not-allowed;
+            transform: none;
+        }
+
+        .quick-actions {
+            padding: 10px 20px;
+            background: #f5f7fb;
+            display: flex;
+            gap: 8px;
+            flex-wrap: wrap;
+            border-top: 1px solid #eee;
+        }
+
+        .quick-actions button {
+            padding: 8px 16px;
+            background: white;
+            border: 1px solid #ddd;
+            border-radius: 20px;
+            font-size: 12px;
+            color: #666;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .quick-actions button:hover {
+            background: #667eea;
+            color: white;
+            border-color: #667eea;
+        }
+
+        .customer-card {
+            background: linear-gradient(135deg, #f5f7fa 0%, #e4e8ec 100%);
+            border-radius: 12px;
+            padding: 15px;
+            margin-top: 12px;
+            border-left: 4px solid #667eea;
+        }
+
+        .customer-card .card-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 12px;
+        }
+
+        .customer-card .card-title {
+            font-weight: 600;
+            color: #333;
+            font-size: 14px;
+        }
+
+        .customer-card .status-badge {
+            padding: 4px 10px;
+            border-radius: 12px;
+            font-size: 11px;
+            font-weight: 500;
+        }
+
+        .customer-card .status-badge.level-a {
+            background: #d4edda;
+            color: #155724;
+        }
+
+        .customer-card .status-badge.level-b {
+            background: #fff3cd;
+            color: #856404;
+        }
+
+        .customer-card .status-badge.level-c {
+            background: #f8d7da;
+            color: #721c24;
+        }
+
+        .customer-card .status-badge.level-d {
+            background: #e2e3e5;
+            color: #383d41;
+        }
+
+        .customer-card .info-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .customer-card .info-item {
+            display: flex;
+            align-items: center;
+            gap: 6px;
+            font-size: 12px;
+            color: #555;
+        }
+
+        .customer-card .info-item .label {
+            color: #888;
+        }
+
+        .customer-card .info-item .value {
+            font-weight: 500;
+            color: #333;
+        }
+
+        .customer-card .probability-bar {
+            margin-top: 12px;
+            background: #e0e0e0;
+            border-radius: 10px;
+            height: 8px;
+            overflow: hidden;
+        }
+
+        .customer-card .probability-fill {
+            height: 100%;
+            border-radius: 10px;
+            transition: width 0.5s ease;
+        }
+
+        .customer-card .probability-fill.high { background: linear-gradient(90deg, #28a745, #20c997); }
+        .customer-card .probability-fill.medium { background: linear-gradient(90deg, #ffc107, #fd7e14); }
+        .customer-card .probability-fill.low { background: linear-gradient(90deg, #dc3545, #e83e8c); }
+
+        .customer-card .suggestion {
+            margin-top: 10px;
+            padding: 10px;
+            background: rgba(102, 126, 234, 0.1);
+            border-radius: 8px;
+            font-size: 12px;
+            color: #5a67d8;
+        }
+
+        .conversion-stats {
+            margin-top: 12px;
+            padding: 12px;
+            background: #f8f9fa;
+            border-radius: 8px;
+        }
+
+        .conversion-stats .stats-title {
+            font-size: 12px;
+            color: #666;
+            margin-bottom: 8px;
+            display: flex;
+            align-items: center;
+            gap: 5px;
+        }
+
+        .conversion-stats .stats-grid {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 8px;
+        }
+
+        .conversion-stats .stat-item {
+            background: white;
+            padding: 8px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .conversion-stats .stat-item .stat-label {
+            font-size: 10px;
+            color: #888;
+        }
+
+        .conversion-stats .stat-item .stat-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #333;
+        }
+
+        .conversion-stats .stat-item .stat-sample {
+            font-size: 9px;
+            color: #aaa;
+        }
+
+        .confidence-badge {
+            display: inline-block;
+            padding: 2px 6px;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+
+        .confidence-badge.high { background: #d4edda; color: #155724; }
+        .confidence-badge.medium { background: #fff3cd; color: #856404; }
+        .confidence-badge.low { background: #ffeaa7; color: #6c5ce7; }
+        .confidence-badge.insufficient { background: #f8d7da; color: #721c24; }
+
+        /* 成交记录简洁样式 */
+        .order-summary {
+            margin-top: 10px;
+            padding: 8px 10px;
+            background: #fff8e1;
+            border-radius: 6px;
+            font-size: 11px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .order-summary .order-label {
+            color: #e65100;
+            font-weight: 600;
+        }
+
+        .order-summary .order-tag-item {
+            display: inline-block;
+            padding: 3px 8px;
+            background: white;
+            border-radius: 4px;
+            color: #333;
+            border: 1px solid #ffcc80;
+        }
+
+        .order-summary .order-tag-item::before {
+            content: '✓ ';
+            color: #4caf50;
+        }
+
+        /* 跟进记录摘要样式 */
+        .follow-summary {
+            margin-top: 10px;
+            padding: 8px 10px;
+            background: #f5f5f5;
+            border-radius: 6px;
+        }
+
+        .follow-summary .summary-title {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .follow-summary .summary-list {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 6px;
+        }
+
+        .follow-summary .summary-item {
+            display: inline-block;
+            padding: 3px 8px;
+            background: white;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #333;
+            border: 1px solid #e0e0e0;
+        }
+
+        /* 简洁案例参考样式 */
+        .ref-cases {
+            margin-top: 10px;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            display: flex;
+            flex-wrap: wrap;
+            align-items: center;
+            gap: 6px;
+        }
+
+        .ref-cases.success-bg {
+            background: #e8f5e9;
+        }
+
+        .ref-cases.failure-bg {
+            background: #ffebee;
+        }
+
+        .ref-cases .ref-label {
+            font-weight: 600;
+        }
+
+        .ref-cases.success-bg .ref-label {
+            color: #2e7d32;
+        }
+
+        .ref-cases.failure-bg .ref-label {
+            color: #c62828;
+        }
+
+        .ref-cases .ref-tag {
+            display: inline-block;
+            padding: 3px 8px;
+            background: white;
+            border-radius: 4px;
+            color: #333;
+        }
+
+        .ref-cases .ref-tag.success {
+            border: 1px solid #a5d6a7;
+        }
+
+        .ref-cases .ref-tag.failure {
+            border: 1px solid #ef9a9a;
+            color: #c62828;
+        }
+
+        .ref-cases .ref-hint {
+            font-size: 10px;
+            color: #c62828;
+            font-style: italic;
+        }
+
+        /* 话术推荐样式 */
+        .scripts-section {
+            margin-top: 12px;
+            padding: 10px;
+            background: linear-gradient(135deg, #f3e5f5 0%, #e1bee7 100%);
+            border-radius: 8px;
+            border-left: 4px solid #9c27b0;
+        }
+
+        .scripts-section .scripts-title {
+            font-size: 12px;
+            color: #7b1fa2;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .scripts-section .scripts-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .scripts-section .script-item {
+            background: white;
+            padding: 8px 10px;
+            border-radius: 6px;
+            cursor: pointer;
+            transition: all 0.2s;
+            position: relative;
+        }
+
+        .scripts-section .script-item:hover {
+            background: #fce4ec;
+            transform: translateX(3px);
+        }
+
+        .scripts-section .script-item:active {
+            transform: scale(0.98);
+        }
+
+        .scripts-section .script-scenario {
+            display: inline-block;
+            padding: 2px 6px;
+            background: #e1bee7;
+            color: #7b1fa2;
+            border-radius: 3px;
+            font-size: 10px;
+            font-weight: 600;
+            margin-right: 6px;
+        }
+
+        .scripts-section .script-text {
+            font-size: 11px;
+            color: #333;
+            line-height: 1.4;
+        }
+
+        .scripts-section .copy-hint {
+            position: absolute;
+            right: 8px;
+            top: 50%;
+            transform: translateY(-50%);
+            font-size: 9px;
+            color: #9c27b0;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+
+        .scripts-section .script-item:hover .copy-hint {
+            opacity: 1;
+        }
+
+        .scripts-section .script-item.copied {
+            background: #c8e6c9;
+        }
+
+        .scripts-section .script-item.copied .copy-hint {
+            opacity: 1;
+            color: #2e7d32;
+        }
+
+        /* 医生列表样式 */
+        .doctors-card {
+            margin-top: 10px;
+            padding: 10px;
+            background: linear-gradient(135deg, #e3f2fd 0%, #bbdefb 100%);
+            border-radius: 8px;
+            border-left: 4px solid #1976d2;
+        }
+
+        .doctors-card .doctors-title {
+            font-size: 12px;
+            color: #1565c0;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .doctors-card .doctors-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .doctors-card .doctor-row {
+            display: grid;
+            grid-template-columns: 90px 1fr 100px;
+            gap: 8px;
+            background: white;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            align-items: center;
+        }
+
+        .doctors-card .doc-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .doctors-card .doc-spec {
+            color: #1976d2;
+            font-size: 10px;
+        }
+
+        .doctors-card .doc-schedule {
+            color: #666;
+            font-size: 10px;
+            text-align: right;
+        }
+
+        /* 医院排名样式 */
+        .ranking-card {
+            margin-top: 10px;
+            padding: 10px;
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+            border-radius: 8px;
+            border-left: 4px solid #ff9800;
+        }
+
+        .ranking-card .ranking-notice {
+            font-size: 11px;
+            color: #e65100;
+            margin-bottom: 8px;
+            padding: 6px 8px;
+            background: rgba(255, 152, 0, 0.15);
+            border-radius: 4px;
+        }
+
+        .ranking-card .ranking-title {
+            font-size: 12px;
+            color: #e65100;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .ranking-card .ranking-list {
+            display: flex;
+            flex-direction: column;
+            gap: 4px;
+        }
+
+        .ranking-card .ranking-row {
+            display: grid;
+            grid-template-columns: 30px 1fr 70px 50px;
+            gap: 8px;
+            background: white;
+            padding: 8px 10px;
+            border-radius: 6px;
+            font-size: 11px;
+            align-items: center;
+        }
+
+        .ranking-card .rank-num {
+            font-weight: 700;
+            color: #ff9800;
+            text-align: center;
+        }
+
+        .ranking-card .ranking-row:nth-child(1) .rank-num { color: #f44336; }
+        .ranking-card .ranking-row:nth-child(2) .rank-num { color: #ff9800; }
+        .ranking-card .ranking-row:nth-child(3) .rank-num { color: #ffc107; }
+
+        .ranking-card .rank-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .ranking-card .rank-type {
+            font-size: 10px;
+            color: #666;
+        }
+
+        .ranking-card .rank-count {
+            font-weight: 600;
+            color: #e65100;
+            text-align: right;
+        }
+
+        /* ========== 客户类型分析卡片样式 ========== */
+        .customer-type-card {
+            margin-top: 12px;
+            padding: 12px;
+            border-radius: 10px;
+            border-left: 4px solid;
+        }
+
+        .customer-type-card.korean {
+            background: linear-gradient(135deg, #fff3e0 0%, #ffe0b2 100%);
+            border-color: #ff9800;
+        }
+
+        .customer-type-card.domestic {
+            background: linear-gradient(135deg, #e8f5e9 0%, #c8e6c9 100%);
+            border-color: #4caf50;
+        }
+
+        .customer-type-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 10px;
+        }
+
+        .customer-type-badge {
+            display: inline-flex;
+            align-items: center;
+            gap: 6px;
+            padding: 4px 10px;
+            border-radius: 15px;
+            font-size: 12px;
+            font-weight: 600;
+        }
+
+        .customer-type-badge.korean {
+            background: #ff9800;
+            color: white;
+        }
+
+        .customer-type-badge.domestic {
+            background: #4caf50;
+            color: white;
+        }
+
+        .business-line-tag {
+            padding: 3px 8px;
+            background: rgba(0,0,0,0.1);
+            border-radius: 4px;
+            font-size: 11px;
+            color: #555;
+        }
+
+        .flow-status {
+            margin-top: 10px;
+        }
+
+        .flow-status-title {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .flow-progress-bar {
+            height: 6px;
+            background: #e0e0e0;
+            border-radius: 3px;
+            overflow: hidden;
+            margin-bottom: 8px;
+        }
+
+        .flow-progress-fill {
+            height: 100%;
+            border-radius: 3px;
+            transition: width 0.5s ease;
+        }
+
+        .flow-progress-fill.korean {
+            background: linear-gradient(90deg, #ff9800, #f57c00);
+        }
+
+        .flow-progress-fill.domestic {
+            background: linear-gradient(90deg, #4caf50, #388e3c);
+        }
+
+        .flow-steps {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 4px;
+        }
+
+        .flow-step {
+            display: inline-flex;
+            align-items: center;
+            gap: 3px;
+            padding: 3px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+        }
+
+        .flow-step.completed {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .flow-step.pending {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .flow-warnings {
+            margin-top: 8px;
+        }
+
+        .flow-warning {
+            padding: 6px 10px;
+            background: #fff8e1;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #f57c00;
+            margin-bottom: 4px;
+        }
+
+        .flow-recommendations {
+            margin-top: 8px;
+        }
+
+        .flow-recommendation {
+            padding: 6px 10px;
+            background: #e3f2fd;
+            border-radius: 4px;
+            font-size: 11px;
+            color: #1565c0;
+            margin-bottom: 4px;
+        }
+
+        /* 档案信息卡片 */
+        .archive-card {
+            margin-top: 10px;
+            padding: 10px;
+            background: #fafafa;
+            border-radius: 6px;
+            border: 1px solid #e0e0e0;
+        }
+
+        .archive-title {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 6px;
+            display: flex;
+            align-items: center;
+            gap: 4px;
+        }
+
+        .archive-info {
+            display: grid;
+            grid-template-columns: repeat(2, 1fr);
+            gap: 6px;
+            font-size: 11px;
+        }
+
+        .archive-info-item {
+            display: flex;
+            gap: 4px;
+        }
+
+        .archive-info-item .label {
+            color: #888;
+        }
+
+        .archive-info-item .value {
+            color: #333;
+            font-weight: 500;
+        }
+
+        /* 同行人员 */
+        .archive-users {
+            margin-top: 8px;
+            padding-top: 8px;
+            border-top: 1px dashed #e0e0e0;
+        }
+
+        .archive-users-title {
+            font-size: 10px;
+            color: #888;
+            margin-bottom: 4px;
+        }
+
+        .archive-user {
+            display: inline-flex;
+            align-items: center;
+            gap: 4px;
+            padding: 3px 8px;
+            background: white;
+            border: 1px solid #e0e0e0;
+            border-radius: 4px;
+            font-size: 10px;
+            margin-right: 4px;
+            margin-bottom: 4px;
+        }
+
+        .archive-user.main {
+            border-color: #ff9800;
+            background: #fff8e1;
+        }
+
+        .archive-user .passport {
+            color: #888;
+            font-size: 9px;
+        }
+
+        /* 预约/日程卡片 */
+        .appointments-card {
+            margin-top: 10px;
+            padding: 10px;
+            background: linear-gradient(135deg, #e8eaf6 0%, #c5cae9 100%);
+            border-radius: 6px;
+            border-left: 3px solid #3f51b5;
+        }
+
+        .appointments-title {
+            font-size: 11px;
+            color: #3f51b5;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .appointment-item {
+            background: white;
+            padding: 8px;
+            border-radius: 4px;
+            margin-bottom: 6px;
+            font-size: 11px;
+        }
+
+        .appointment-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .appointment-header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 4px;
+        }
+
+        .appointment-status {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+
+        .appointment-status.success {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .appointment-status.pending {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        .appointment-status.cancelled {
+            background: #ffcdd2;
+            color: #c62828;
+        }
+
+        .appointment-detail {
+            display: flex;
+            flex-wrap: wrap;
+            gap: 8px;
+            color: #666;
+            font-size: 10px;
+        }
+
+        .appointment-detail span {
+            display: flex;
+            align-items: center;
+            gap: 3px;
+        }
+
+        /* 医院派单卡片 */
+        .hospital-orders-card {
+            margin-top: 10px;
+            padding: 10px;
+            background: #f5f5f5;
+            border-radius: 6px;
+        }
+
+        .hospital-orders-title {
+            font-size: 11px;
+            color: #666;
+            margin-bottom: 6px;
+        }
+
+        .hospital-order-item {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            padding: 6px 8px;
+            background: white;
+            border-radius: 4px;
+            margin-bottom: 4px;
+            font-size: 11px;
+        }
+
+        .hospital-order-item:last-child {
+            margin-bottom: 0;
+        }
+
+        .surgery-status {
+            padding: 2px 6px;
+            border-radius: 3px;
+            font-size: 10px;
+        }
+
+        .surgery-status.completed {
+            background: #c8e6c9;
+            color: #2e7d32;
+        }
+
+        .surgery-status.pending {
+            background: #fff3e0;
+            color: #e65100;
+        }
+
+        /* 流失预警卡片样式 */
+        .churn-warning-card {
+            margin-top: 10px;
+            padding: 12px;
+            background: linear-gradient(135deg, #ffebee 0%, #ffcdd2 100%);
+            border-radius: 8px;
+            border-left: 4px solid #f44336;
+        }
+
+        .churn-warning-card .alert-banner {
+            padding: 10px 12px;
+            background: rgba(244, 67, 54, 0.15);
+            border-radius: 6px;
+            margin-bottom: 12px;
+            font-size: 13px;
+            font-weight: 600;
+            color: #c62828;
+        }
+
+        .churn-warning-card .alert-banner.critical { background: rgba(244, 67, 54, 0.2); color: #b71c1c; }
+        .churn-warning-card .alert-banner.high { background: rgba(255, 152, 0, 0.2); color: #e65100; }
+        .churn-warning-card .alert-banner.medium { background: rgba(255, 193, 7, 0.2); color: #f57f17; }
+        .churn-warning-card .alert-banner.low { background: rgba(76, 175, 80, 0.2); color: #2e7d32; }
+
+        .churn-warning-card .stats-section {
+            display: grid;
+            grid-template-columns: repeat(4, 1fr);
+            gap: 8px;
+            margin-bottom: 12px;
+        }
+
+        .churn-warning-card .stat-box {
+            background: white;
+            padding: 10px 8px;
+            border-radius: 6px;
+            text-align: center;
+        }
+
+        .churn-warning-card .stat-box .stat-icon {
+            font-size: 16px;
+            margin-bottom: 4px;
+        }
+
+        .churn-warning-card .stat-box .stat-num {
+            font-size: 18px;
+            font-weight: 700;
+        }
+
+        .churn-warning-card .stat-box .stat-label {
+            font-size: 10px;
+            color: #666;
+        }
+
+        .churn-warning-card .stat-box.critical .stat-num { color: #f44336; }
+        .churn-warning-card .stat-box.high .stat-num { color: #ff9800; }
+        .churn-warning-card .stat-box.medium .stat-num { color: #ffc107; }
+        .churn-warning-card .stat-box.low .stat-num { color: #4caf50; }
+
+        .churn-warning-card .clients-title {
+            font-size: 12px;
+            color: #c62828;
+            font-weight: 600;
+            margin-bottom: 8px;
+        }
+
+        .churn-warning-card .client-list {
+            display: flex;
+            flex-direction: column;
+            gap: 6px;
+        }
+
+        .churn-warning-card .client-item {
+            background: white;
+            padding: 10px;
+            border-radius: 6px;
+            display: grid;
+            grid-template-columns: 24px 1fr auto;
+            gap: 8px;
+            align-items: center;
+            font-size: 11px;
+        }
+
+        .churn-warning-card .client-item .risk-icon {
+            font-size: 14px;
+        }
+
+        .churn-warning-card .client-item .client-info {
+            display: flex;
+            flex-direction: column;
+            gap: 2px;
+        }
+
+        .churn-warning-card .client-item .client-name {
+            font-weight: 600;
+            color: #333;
+        }
+
+        .churn-warning-card .client-item .client-detail {
+            color: #666;
+            font-size: 10px;
+        }
+
+        .churn-warning-card .client-item .days-badge {
+            padding: 4px 8px;
+            border-radius: 4px;
+            font-size: 10px;
+            font-weight: 600;
+        }
+
+        .churn-warning-card .client-item .days-badge.critical { background: #ffcdd2; color: #c62828; }
+        .churn-warning-card .client-item .days-badge.high { background: #ffe0b2; color: #e65100; }
+        .churn-warning-card .client-item .days-badge.medium { background: #fff9c4; color: #f57f17; }
+        .churn-warning-card .client-item .days-badge.low { background: #c8e6c9; color: #2e7d32; }
+
+        .churn-warning-card .tip {
+            margin-top: 10px;
+            padding: 8px 10px;
+            background: rgba(255, 255, 255, 0.8);
+            border-radius: 4px;
+            font-size: 11px;
+            color: #666;
+        }
+    </style>
+</head>
+<body>
+    <div class="chat-container">
+        <div class="chat-header">
+            <div class="avatar">🤖</div>
+            <div class="info">
+                <h1>智能客服助手</h1>
+                <p>支持客户分析(韩国/国内)、医院推荐、日程管理等</p>
+            </div>
+        </div>
+
+        <div class="chat-messages" id="messages">
+            <div class="message bot">
+                <div class="avatar">🤖</div>
+                <div class="content">
+                    您好！我是智能客服助手，可以帮您：<br><br>
+                    <strong>1. 客户分析</strong> - 区分韩国/国内客户，分析成交概率<br>
+                    <strong>2. 流失预警</strong> - 查看高风险流失客户，及时跟进<br>
+                    <strong>3. 医院排名</strong> - 查看地区医院派单/成交排名<br>
+                    <strong>4. 流程跟踪</strong> - 查看客户流程状态和待办事项<br><br>
+                    试试：<strong>查看流失预警</strong> 或 <strong>上海派单前十医院</strong>
+                </div>
+            </div>
+        </div>
+
+        <div class="quick-actions">
+            <button onclick="sendQuick('查看流失预警')">🚨 流失预警</button>
+            <button onclick="sendQuick('上海派单前十医院')">📊 医院排名</button>
+            <button onclick="sendQuick('分析一下客户4333366')">👤 客户分析</button>
+            <button onclick="sendQuick('紧急流失客户')">🔴 紧急客户</button>
+        </div>
+
+        <div class="chat-input">
+            <input type="text" id="userInput" placeholder="输入您的问题..." onkeypress="handleKeyPress(event)">
+            <button id="sendBtn" onclick="sendMessage()">发送</button>
+        </div>
+    </div>
+
+    <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+    <script>
+        const API_URL = 'http://localhost:8090/api/dental/chat';
+        const messagesContainer = document.getElementById('messages');
+        const userInput = document.getElementById('userInput');
+        const sendBtn = document.getElementById('sendBtn');
+
+        function formatTime() {
+            const now = new Date();
+            return now.toLocaleTimeString('zh-CN', { hour: '2-digit', minute: '2-digit' });
+        }
+
+        function addMessage(content, isUser = false, data = null) {
+            const messageDiv = document.createElement('div');
+            messageDiv.className = `message ${isUser ? 'user' : 'bot'}`;
+
+            let dataHtml = '';
+            if (data && data.customer_analysis) {
+                const ca = data.customer_analysis;
+                const customer = ca.customer || {};
+                const analysis = ca.analysis || {};
+                const orders = ca.orders || [];
+
+                // ⭐ 新增：客户类型信息
+                const customerType = ca.customer_type || {};
+                const flowStatus = ca.flow_status || {};
+                const archives = ca.archives || [];
+                const archiveUsers = ca.archive_users || [];
+                const appointments = ca.appointments || [];
+                const hospitalOrders = ca.hospital_orders || [];
+
+                // 客户类型判断
+                const isKorean = customerType.is_korean || false;
+                const typeClass = isKorean ? 'korean' : 'domestic';
+                const typeIcon = isKorean ? '🇰🇷' : '🇨🇳';
+                const typeName = customerType.customer_type || '未知';
+                const businessLine = customerType.business_line || '未分类';
+
+                // 确定等级样式
+                const level = analysis.level || 'D';
+                const levelClass = `level-${level.toLowerCase()}`;
+                const probability = analysis.probability || 0;
+
+                // 概率条颜色
+                let probClass = 'low';
+                if (probability >= 70) probClass = 'high';
+                else if (probability >= 40) probClass = 'medium';
+
+                // 隐藏手机号中间4位
+                const phone = customer.phone || '';
+                const maskedPhone = phone.length >= 7 ?
+                    phone.substring(0, 3) + '****' + phone.substring(7) : phone;
+
+                // 订单信息
+                let orderInfo = '暂无';
+                if (orders.length > 0) {
+                    const totalAmount = orders.reduce((sum, o) => sum + (o.amount || 0), 0);
+                    orderInfo = `${orders.length}笔 / ¥${totalAmount.toLocaleString()}`;
+                }
+
+                // 跟进记录
+                const followRecords = ca.follow_records || [];
+
+                // ========== 构建客户类型卡片 ==========
+                let customerTypeHtml = `
+                    <div class="customer-type-card ${typeClass}">
+                        <div class="customer-type-header">
+                            <span class="customer-type-badge ${typeClass}">
+                                ${typeIcon} ${typeName}
+                            </span>
+                            <span class="business-line-tag">${businessLine}</span>
+                        </div>
+                        <div class="flow-status">
+                            <div class="flow-status-title">📍 当前阶段: <strong>${flowStatus.current_stage || '未知'}</strong></div>
+                            <div class="flow-progress-bar">
+                                <div class="flow-progress-fill ${typeClass}" style="width: ${flowStatus.progress_percent || 0}%"></div>
+                            </div>
+                            <div class="flow-steps">
+                                ${(flowStatus.completed_steps || []).map(s => `<span class="flow-step completed">✓ ${s}</span>`).join('')}
+                                ${(flowStatus.pending_steps || []).map(s => `<span class="flow-step pending">○ ${s}</span>`).join('')}
+                            </div>
+                        </div>
+                        ${(flowStatus.warnings || []).length > 0 ? `
+                            <div class="flow-warnings">
+                                ${flowStatus.warnings.map(w => `<div class="flow-warning">${w}</div>`).join('')}
+                            </div>
+                        ` : ''}
+                        ${(flowStatus.recommendations || []).length > 0 ? `
+                            <div class="flow-recommendations">
+                                ${flowStatus.recommendations.map(r => `<div class="flow-recommendation">💡 ${r}</div>`).join('')}
+                            </div>
+                        ` : ''}
+                    </div>
+                `;
+
+                // ========== 韩国客户专属：档案信息 ==========
+                let archiveHtml = '';
+                if (isKorean && archives.length > 0) {
+                    const archive = archives[0];
+                    archiveHtml = `
+                        <div class="archive-card">
+                            <div class="archive-title">📋 档案信息</div>
+                            <div class="archive-info">
+                                <div class="archive-info-item">
+                                    <span class="label">档案名:</span>
+                                    <span class="value">${archive.name || '未知'}</span>
+                                </div>
+                                <div class="archive-info-item">
+                                    <span class="label">护照号:</span>
+                                    <span class="value">${archive.passport_no || '未录入'}</span>
+                                </div>
+                            </div>
+                            ${archiveUsers.length > 0 ? `
+                                <div class="archive-users">
+                                    <div class="archive-users-title">👥 同行人员 (${archiveUsers.length}人)</div>
+                                    ${archiveUsers.map(u => `
+                                        <span class="archive-user ${u.is_main ? 'main' : ''}">
+                                            ${u.is_main ? '⭐' : ''} ${u.name || '未知'}
+                                            ${u.passport_no ? `<span class="passport">${u.passport_no}</span>` : '<span class="passport" style="color:#e65100;">护照待补</span>'}
+                                        </span>
+                                    `).join('')}
+                                </div>
+                            ` : ''}
+                        </div>
+                    `;
+                }
+
+                // ========== 韩国客户专属：预约/日程 ==========
+                let appointmentsHtml = '';
+                if (isKorean && appointments.length > 0) {
+                    appointmentsHtml = `
+                        <div class="appointments-card">
+                            <div class="appointments-title">📅 预约/日程 (${appointments.length}条)</div>
+                            ${appointments.slice(0, 3).map(a => {
+                                let statusClass = 'pending';
+                                if (a.status === '预约成功') statusClass = 'success';
+                                else if (a.status === '已取消' || a.status === '已删除') statusClass = 'cancelled';
+                                return `
+                                    <div class="appointment-item">
+                                        <div class="appointment-header">
+                                            <span>🗓️ ${a.time || '时间未定'}</span>
+                                            <span class="appointment-status ${statusClass}">${a.status}</span>
+                                        </div>
+                                        <div class="appointment-detail">
+                                            ${a.flight_no ? `<span>✈️ ${a.flight_no}</span>` : ''}
+                                            ${a.flight_time ? `<span>🕐 ${a.flight_time}</span>` : ''}
+                                            ${a.hotel ? `<span>🏨 ${a.hotel}</span>` : ''}
+                                        </div>
+                                    </div>
+                                `;
+                            }).join('')}
+                        </div>
+                    `;
+                }
+
+                // ========== 医院派单记录 ==========
+                let hospitalOrdersHtml = '';
+                if (hospitalOrders.length > 0) {
+                    hospitalOrdersHtml = `
+                        <div class="hospital-orders-card">
+                            <div class="hospital-orders-title">🏥 医院派单 (${hospitalOrders.length}条)</div>
+                            ${hospitalOrders.slice(0, 3).map(o => `
+                                <div class="hospital-order-item">
+                                    <span>医院ID: ${o.hospital_id} | ${o.send_time}</span>
+                                    <span class="surgery-status ${o.surgery_status === '已完成' ? 'completed' : 'pending'}">${o.surgery_status}</span>
+                                </div>
+                            `).join('')}
+                        </div>
+                    `;
+                }
+
+                // 转化率统计
+                const similar = ca.similar_customers || {};
+                const precise = similar.precise || {};
+                const overall = similar.overall || {};
+                const kfStats = similar.kf || {};
+                const confidence = similar.confidence || 'insufficient';
+                const confidenceDesc = similar.confidence_desc || '样本不足';
+
+                // 格式化转化率
+                const formatRate = (rate) => rate ? (rate * 100).toFixed(1) + '%' : '0%';
+
+                let conversionHtml = '';
+                if (precise.total > 0 || overall.total > 0) {
+                    conversionHtml = `
+                        <div class="conversion-stats">
+                            <div class="stats-title">
+                                📊 同类客户转化率分析
+                                <span class="confidence-badge ${confidence}">${confidenceDesc}</span>
+                            </div>
+                            <div class="stats-grid">
+                                <div class="stat-item">
+                                    <div class="stat-label">精准匹配</div>
+                                    <div class="stat-value">${formatRate(precise.rate)}</div>
+                                    <div class="stat-sample">样本 ${precise.total || 0}</div>
+                                </div>
+                                <div class="stat-item">
+                                    <div class="stat-label">项目整体</div>
+                                    <div class="stat-value">${formatRate(overall.rate)}</div>
+                                    <div class="stat-sample">样本 ${overall.total || 0}</div>
+                                </div>
+                                ${kfStats.total > 0 ? `
+                                <div class="stat-item">
+                                    <div class="stat-label">客服历史</div>
+                                    <div class="stat-value">${formatRate(kfStats.rate)}</div>
+                                    <div class="stat-sample">样本 ${kfStats.total || 0}</div>
+                                </div>
+                                ` : ''}
+                            </div>
+                            ${similar.summary ? `<div style="margin-top: 8px; font-size: 11px; color: #666;">💡 ${similar.summary}</div>` : ''}
+                        </div>
+                    `;
+                }
+
+                // ============ 案例展示逻辑 ============
+                const successCases = ca.success_cases || [];
+                const failureCases = ca.failure_cases || [];
+                const isConverted = orders.length > 0 || probability === 100 || analysis.level_desc === '已成交';
+                let casesHtml = '';
+
+                // 已成交客户不显示案例，显示成交详情
+                if (isConverted && orders.length > 0) {
+                    // 简洁展示成交记录
+                    const orderTags = orders.map(o =>
+                        `<span class="order-tag-item">${o.hospital || '医院'} ¥${(o.amount || 0).toLocaleString()}</span>`
+                    ).join('');
+
+                    casesHtml = `
+                        <div class="order-summary">
+                            <span class="order-label">💰 成交:</span>
+                            ${orderTags}
+                        </div>
+                    `;
+                } else if (!isConverted && probability >= 50 && successCases.length > 0) {
+                    // 高概率未成交：展示成功案例（简洁版）
+                    const casesTags = successCases.slice(0, 3).map(c =>
+                        `<span class="ref-tag success">${c.hospital || '医院'} ¥${(c.amount || 0).toLocaleString()} ${c.follow_days || 0}天</span>`
+                    ).join('');
+
+                    casesHtml = `
+                        <div class="ref-cases success-bg">
+                            <span class="ref-label">✅ 同类成交参考:</span>
+                            ${casesTags}
+                        </div>
+                    `;
+                } else if (!isConverted && probability < 50 && failureCases.length > 0) {
+                    // 低概率未成交：展示失败案例（简洁版）
+                    const casesTags = failureCases.slice(0, 3).map(c =>
+                        `<span class="ref-tag failure">${c.days || 0}天未成交</span>`
+                    ).join('');
+
+                    casesHtml = `
+                        <div class="ref-cases failure-bg">
+                            <span class="ref-label">⚠️ 同类历史:</span>
+                            ${casesTags}
+                            <span class="ref-hint">建议降低优先级</span>
+                        </div>
+                    `;
+                }
+
+                dataHtml = `
+                    ${customerTypeHtml}
+                    ${archiveHtml}
+                    ${appointmentsHtml}
+                    ${hospitalOrdersHtml}
+                    <div class="customer-card">
+                        <div class="card-header">
+                            <span class="card-title">📋 客户分析摘要</span>
+                            <span class="status-badge ${levelClass}">${analysis.level_desc || '未知'}</span>
+                        </div>
+                        <div class="info-grid">
+                            <div class="info-item">
+                                <span class="label">客户:</span>
+                                <span class="value">${customer.name || '未知'}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">电话:</span>
+                                <span class="value">${maskedPhone}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">状态:</span>
+                                <span class="value">${isConverted ? '已成交' : (customer.status || '跟进中')}</span>
+                            </div>
+                            <div class="info-item">
+                                <span class="label">订单:</span>
+                                <span class="value">${orderInfo}</span>
+                            </div>
+                        </div>
+                        <div class="probability-bar">
+                            <div class="probability-fill ${probClass}" style="width: ${probability}%"></div>
+                        </div>
+                        <div style="text-align: center; font-size: 12px; color: #666; margin-top: 5px;">
+                            成交概率: <strong style="color: #5a67d8;">${probability}%</strong>
+                        </div>
+                        ${conversionHtml}
+                        ${followRecords.length > 0 ? `
+                        <div class="follow-summary">
+                            <div class="summary-title">📝 最近动态</div>
+                            <div class="summary-list">
+                            ${followRecords.slice(0, 3).map(r => {
+                                const content = r.content || '';
+                                let icon = '💬';
+                                let summary = '';
+
+                                // 解析预约记录
+                                if (content.includes('创建预约')) {
+                                    icon = '📅';
+                                    const hospitalMatch = content.match(/医院[：:]\s*(.+?)[\n\r]/);
+                                    const timeMatch = content.match(/预约时间[：:]\s*(.+?)[\n\r]/);
+                                    summary = `预约 ${hospitalMatch ? hospitalMatch[1] : ''} ${timeMatch ? timeMatch[1] : ''}`;
+                                } else if (content.includes('确认预约')) {
+                                    icon = '✅';
+                                    const hospitalMatch = content.match(/医院[：:]\s*(.+?)[\n\r]/);
+                                    summary = `确认预约 ${hospitalMatch ? hospitalMatch[1] : ''}`;
+                                } else if (content.includes('派单')) {
+                                    icon = '📤';
+                                    const hospitalMatch = content.match(/【(.+?)】/);
+                                    summary = `派单 ${hospitalMatch ? hospitalMatch[1] : ''}`;
+                                } else if (content.includes('修改预约')) {
+                                    icon = '✏️';
+                                    summary = '修改预约信息';
+                                } else {
+                                    summary = content.split('\n')[0].substring(0, 20);
+                                }
+
+                                return `<span class="summary-item">${icon} ${summary}</span>`;
+                            }).join('')}
+                            </div>
+                        </div>
+                        ` : ''}
+                        ${casesHtml}
+                        ${(() => {
+                            const scripts = ca.follow_scripts || [];
+                            if (scripts.length === 0) return '';
+                            return `
+                                <div class="scripts-section">
+                                    <div class="scripts-title">💬 推荐话术</div>
+                                    <div class="scripts-list">
+                                        ${scripts.slice(0, 3).map(s => `
+                                            <div class="script-item" onclick="copyScript(this)">
+                                                <span class="script-scenario">${s.scenario}</span>
+                                                <span class="script-text">${s.script}</span>
+                                                <span class="copy-hint">点击复制</span>
+                                            </div>
+                                        `).join('')}
+                                    </div>
+                                </div>
+                            `;
+                        })()}
+                    </div>
+                `;
+            }
+
+            // 医生列表展示
+            if (data && data.doctors && data.doctors.length > 0) {
+                const doctors = data.doctors;
+                const hospitalName = doctors[0]?.hospital_name || '医院';
+
+                const doctorRows = doctors.map(d => {
+                    // 解析specialties (可能是JSON字符串)
+                    let specs = d.specialties || '';
+                    try {
+                        if (typeof specs === 'string' && specs.startsWith('[')) {
+                            specs = JSON.parse(specs).join('/');
+                        }
+                    } catch(e) { }
+                    if (specs.length > 15) specs = specs.substring(0, 15) + '...';
+
+                    const schedule = (d.schedule || '').substring(0, 20);
+
+                    return `
+                        <div class="doctor-row">
+                            <span class="doc-name">👨‍⚕️ ${d.doctor_name || '医生'}</span>
+                            <span class="doc-spec">${specs}</span>
+                            <span class="doc-schedule">${schedule}</span>
+                        </div>
+                    `;
+                }).join('');
+
+                dataHtml = `
+                    <div class="doctors-card">
+                        <div class="doctors-title">🏥 ${hospitalName} 医生团队 (${doctors.length}位)</div>
+                        <div class="doctors-list">
+                            ${doctorRows}
+                        </div>
+                    </div>
+                `;
+            }
+
+            // 医院排名展示
+            if (data && data.hospital_ranking && data.hospital_ranking.hospitals) {
+                const ranking = data.hospital_ranking;
+                const hospitals = ranking.hospitals || [];
+                const area = ranking.area || '地区';
+                const notice = ranking.notice || '';
+
+                if (hospitals.length > 0) {
+                    const rankingRows = hospitals.map(h => `
+                        <div class="ranking-row">
+                            <span class="rank-num">${h.rank}</span>
+                            <span class="rank-name">${h.hospital_name}</span>
+                            <span class="rank-type">${h.hospital_type}</span>
+                            <span class="rank-count">${h.dispatch_count}单</span>
+                        </div>
+                    `).join('');
+
+                    dataHtml = `
+                        <div class="ranking-card">
+                            <div class="ranking-notice">⚠️ ${notice}</div>
+                            <div class="ranking-title">📊 ${area}地区医院派单排名</div>
+                            <div class="ranking-list">
+                                ${rankingRows}
+                            </div>
+                        </div>
+                    `;
+                }
+            }
+
+            // 流失预警展示
+            if (data && data.churn_warning) {
+                const churn = data.churn_warning;
+                const stats = churn.statistics || {};
+                const clients = churn.clients || [];
+                const alert = churn.alert || '';
+                const alertLevel = churn.alert_level || 'low';
+
+                const riskIcons = { critical: '🔴', high: '🟠', medium: '🟡', low: '🟢' };
+
+                const clientRows = clients.slice(0, 10).map(c => `
+                    <div class="client-item">
+                        <span class="risk-icon">${riskIcons[c.risk_level] || '⚪'}</span>
+                        <div class="client-info">
+                            <span class="client-name">${c.name} (ID:${c.client_id})</span>
+                            <span class="client-detail">${c.project} | ${c.hospital} | 最后跟进: ${c.last_follow}</span>
+                        </div>
+                        <span class="days-badge ${c.risk_level}">${c.days_no_follow}天未跟进</span>
+                    </div>
+                `).join('');
+
+                dataHtml = `
+                    <div class="churn-warning-card">
+                        <div class="alert-banner ${alertLevel}">${alert}</div>
+                        <div class="stats-section">
+                            <div class="stat-box critical">
+                                <div class="stat-icon">🔴</div>
+                                <div class="stat-num">${stats.critical?.count || 0}</div>
+                                <div class="stat-label">紧急(>14天)</div>
+                            </div>
+                            <div class="stat-box high">
+                                <div class="stat-icon">🟠</div>
+                                <div class="stat-num">${stats.high?.count || 0}</div>
+                                <div class="stat-label">高风险</div>
+                            </div>
+                            <div class="stat-box medium">
+                                <div class="stat-icon">🟡</div>
+                                <div class="stat-num">${stats.medium?.count || 0}</div>
+                                <div class="stat-label">中风险</div>
+                            </div>
+                            <div class="stat-box low">
+                                <div class="stat-icon">🟢</div>
+                                <div class="stat-num">${stats.low?.count || 0}</div>
+                                <div class="stat-label">低风险</div>
+                            </div>
+                        </div>
+                        ${clients.length > 0 ? `
+                            <div class="clients-title">⚠️ 需关注客户列表</div>
+                            <div class="client-list">${clientRows}</div>
+                        ` : ''}
+                        <div class="tip">💡 建议：优先处理紧急和高风险客户，及时跟进避免流失</div>
+                    </div>
+                `;
+            }
+
+            // 使用 marked 解析 Markdown
+            const htmlContent = isUser ? content : marked.parse(content);
+
+            messageDiv.innerHTML = `
+                <div class="avatar">${isUser ? '👤' : '🤖'}</div>
+                <div class="content">
+                    ${htmlContent}
+                    ${dataHtml}
+                    <div class="time">${formatTime()}</div>
+                </div>
+            `;
+
+            messagesContainer.appendChild(messageDiv);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function addTypingIndicator() {
+            const indicator = document.createElement('div');
+            indicator.className = 'typing-indicator';
+            indicator.id = 'typing';
+            indicator.innerHTML = `
+                <span>AI正在思考</span>
+                <div class="dots">
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                    <div class="dot"></div>
+                </div>
+            `;
+            messagesContainer.appendChild(indicator);
+            messagesContainer.scrollTop = messagesContainer.scrollHeight;
+        }
+
+        function removeTypingIndicator() {
+            const indicator = document.getElementById('typing');
+            if (indicator) indicator.remove();
+        }
+
+        async function sendMessage() {
+            const message = userInput.value.trim();
+            if (!message) return;
+
+            // 添加用户消息
+            addMessage(message, true);
+            userInput.value = '';
+            sendBtn.disabled = true;
+
+            // 显示加载状态
+            addTypingIndicator();
+
+            try {
+                const response = await fetch(API_URL, {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/json',
+                    },
+                    body: JSON.stringify({ question: message })
+                });
+
+                const result = await response.json();
+                removeTypingIndicator();
+
+                if (result.success) {
+                    addMessage(result.answer, false, result.data);
+                } else {
+                    addMessage('抱歉，处理您的请求时出现错误：' + (result.error || '未知错误'), false);
+                }
+            } catch (error) {
+                removeTypingIndicator();
+                addMessage('抱歉，无法连接到服务器，请检查服务是否启动。\n\n错误信息：' + error.message, false);
+            }
+
+            sendBtn.disabled = false;
+            userInput.focus();
+        }
+
+        function sendQuick(text) {
+            userInput.value = text;
+            sendMessage();
+        }
+
+        function copyScript(element) {
+            const scriptText = element.querySelector('.script-text').innerText;
+            navigator.clipboard.writeText(scriptText).then(() => {
+                element.classList.add('copied');
+                element.querySelector('.copy-hint').innerText = '已复制!';
+                setTimeout(() => {
+                    element.classList.remove('copied');
+                    element.querySelector('.copy-hint').innerText = '点击复制';
+                }, 1500);
+            }).catch(err => {
+                console.error('复制失败:', err);
+                // 降级方案
+                const textarea = document.createElement('textarea');
+                textarea.value = scriptText;
+                document.body.appendChild(textarea);
+                textarea.select();
+                document.execCommand('copy');
+                document.body.removeChild(textarea);
+                element.classList.add('copied');
+                element.querySelector('.copy-hint').innerText = '已复制!';
+                setTimeout(() => {
+                    element.classList.remove('copied');
+                    element.querySelector('.copy-hint').innerText = '点击复制';
+                }, 1500);
+            });
+        }
+
+        function handleKeyPress(event) {
+            if (event.key === 'Enter') {
+                sendMessage();
+            }
+        }
+
+        // 自动聚焦输入框
+        userInput.focus();
+    </script>
+</body>
+</html>
