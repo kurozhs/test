@@ -43,6 +43,9 @@ Thumbs.db
 node_modules/
 web/node_modules/
 
+# Backup
+.backup_sensitive/
+
 # Temp/UUID dirs
 38da17de-028f-42df-aa94-af566839fd32/
 719eac68-ad59-463b-bd29-57ff950eb0de/
