@@ -59,7 +59,7 @@ class DuckDbConnector(RDBMSConnector):
         cls, parameters: DuckDbConnectorParameters
     ) -> "DuckDbConnector":
         """Create a new DuckDBConnector from parameters."""
-        return cls.from_uri(parameters.db_url())
+        return cls.from_uri(parameters.path)
 
     @classmethod
     def from_file_path(
