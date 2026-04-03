@@ -27,7 +27,7 @@
                                      │ session 管理                              ▼
                                    ┌────────────┐                    ┌───────────────────┐
                                    │ kf_users    │                   │ LLM (qwen3-omni)  │
-                                   │  .json      │                   │ 182.114.59.224    │
+                                   │  .json      │                   │ <llm_server_ip>    │
                                    │ (身份缓存)   │                   │ :60329            │
                                    └────────────┘                    └───────────────────┘
                                                                               ▲
@@ -133,28 +133,28 @@
 # 医院知识库数据库（本地 MySQL）
 DB_HOST=localhost
 DB_PORT=3306
-DB_USER=root
-DB_PASSWORD=ServBay.dev
+DB_USER=<your_db_user>
+DB_PASSWORD=<your_db_password>
 DB_NAME=hospital_db
 
 # 客服系统数据库（渠道系统，OceanBase）
-QUDAO_DB_HOST=192.168.103.227
+QUDAO_DB_HOST=<your_db_host>
 QUDAO_DB_PORT=2883
-QUDAO_DB_USER=oaxz@kfsys_tnt#szst_oceanbase_sec
-QUDAO_DB_PASSWORD=yq4(Rv-ZMWvo4Sg%5q2!
+QUDAO_DB_USER=<your_db_user>
+QUDAO_DB_PASSWORD=<your_db_password>
 QUDAO_DB_NAME=kfsyscb
 
 # LLM
-LLM_API_BASE=http://182.114.59.224:60329/v1
-LLM_API_KEY=dummy
+LLM_API_BASE=<your_llm_api_base>
+LLM_API_KEY=<your_llm_api_key>
 LLM_MODEL=qwen3-omni-30b
 
 # API 安全
-API_SECRET_KEY=dental_api_secret_2026
+API_SECRET_KEY=<your_api_secret>
 
 # 钉钉机器人
-DINGTALK_CLIENT_ID=dingjubchal0g3m6k8lz
-DINGTALK_CLIENT_SECRET=W0Hkh9ObAuGaJ0yQ9Dp6HD2p9buGmZrkCuXxRVldzVd_e6pre0esa1YMiXf4FEjs
+DINGTALK_CLIENT_ID=<your_dingtalk_client_id>
+DINGTALK_CLIENT_SECRET=<your_dingtalk_client_secret>
 DENTAL_API_BASE=http://localhost:8090
 ```
 
@@ -212,7 +212,7 @@ curl http://localhost:8090/health
 | `robot_kb_doctors` | 医生信息（姓名、职称、擅长、排班） |
 | `robot_kb_promotions` | 活动优惠信息 |
 
-### 8.2 kfsyscb（OceanBase, 192.168.103.227:2883）
+### 8.2 kfsyscb（OceanBase, <qudao_db_host>:2883）
 
 客服渠道系统（线上生产库，只读查询）。
 
@@ -316,8 +316,8 @@ curl http://localhost:8090/health
 
 ### Q: 回复说"系统繁忙"
 
-- LLM 服务不可达。检查 `http://182.114.59.224:60329/v1` 是否能访问
-- `curl http://182.114.59.224:60329/v1/models` 测试连通性
+- LLM 服务不可达。检查 `http://<llm_server_ip>:60329/v1` 是否能访问
+- `curl http://<llm_server_ip>:60329/v1/models` 测试连通性
 
 ### Q: 回复没有上下文
 

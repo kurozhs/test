@@ -1,16 +1,9 @@
 {
-  "$:LWCP_v1:$9xaZ2kHW7UKoN1uBneqY+nkJmgkXubFV": {
+  "<dingtalk_token>": {
     "kf_id": null,
-    "kf_name": "谢广坤",
+    "kf_name": "<user_name>",
     "role": "管理员",
-    "dingtalk_nick": "谢广坤",
-    "dingtalk_real_name": "谢广坤"
-  },
-  "谢广坤": {
-    "kf_id": null,
-    "kf_name": "谢广坤",
-    "role": "管理员",
-    "dingtalk_nick": "谢广坤",
-    "dingtalk_real_name": "谢广坤"
+    "dingtalk_nick": "<user_name>",
+    "dingtalk_real_name": "<user_name>"
   }
 }
